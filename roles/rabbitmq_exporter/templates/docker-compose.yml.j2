@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  rabbitmq-exporter:
+    image: {{ rabbitmq_exporter.image }}
+    container_name: {{ docker.network.name }}-rabbitmq-exporter
+    hostname: rabbitmq-exporter
+    restart: always 
+    networks:
+      - {{ docker.network.name }} 
+    {% for node in rabbitmq_exporter.nodes -%} 
+    {% if node.host == inventory_hostname -%} 
+    ports: 
+      - {{ node.port }}:9419 
+    environment: 
+      - RABBIT_URL=http://{{ node.url }} 
+      - RABBIT_USER={{ node.user }} 
+      - RABBIT_PASSWORD={{ node.password }} 
+    {% endif %} 
+    {% endfor %} 
+
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }} 

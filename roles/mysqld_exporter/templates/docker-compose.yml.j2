@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  mysqld-exporter:
+    image: {{ mysqld_exporter.image }}
+    container_name: {{ docker.network.name }}-mysqld-exporter
+    hostname: mysqld-exporter
+    restart: always 
+    networks:
+      - {{ docker.network.name }} 
+    {% for node in mysqld_exporter.nodes -%} 
+    {% if node.host == inventory_hostname -%} 
+    ports: 
+      - {{ node.port }}:9104 
+    environment: 
+      - DATA_SOURCE_NAME={{ node.user }}:{{ node.password }}@({{ node.url }})/{{ node.database }} 
+    {% endif %} 
+    {% endfor %} 
+
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }}

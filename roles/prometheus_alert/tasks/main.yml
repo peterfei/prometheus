@@ -1,0 +1,66 @@
+---
+# 校验 PrometheusAlert 是否安装
+- name: '<{{ cmd | upper }}> | 校验 PrometheusAlert 是否安装'
+  stat:
+    path: '{{ flag }}'
+  register: ret
+
+# 安装 PrometheusAlert
+- block: 
+  - name: '<{{ cmd | upper }}> | 创建 PrometheusAlert 相关目录'
+    file:
+      path: '{{ item.value }}'
+      state: directory
+    loop: '{{ prometheus_alert.dir | dict2items }}'
+
+  - name: '<{{ cmd | upper }}> | 安装 PrometheusAlert'
+    template: 
+      src: '{{ item.src }}'
+      dest: '{{ item.dest }}'
+    loop:
+    - src: docker-compose.yml.j2
+      dest: '{{ prometheus_alert.dir.main }}/docker-compose.yml'
+    - src: conf/app.conf.j2
+      dest: '{{ prometheus_alert.dir.conf }}/app.conf'
+
+  - name: '<{{ cmd | upper }}> | 启动 PrometheusAlert 容器'
+    shell: |
+      . /etc/profile
+      cd {{ prometheus_alert.dir.main }}
+      docker-compose down
+      docker-compose up -d
+
+  - name: '<{{ cmd | upper }}> | 等待 PrometheusAlert 服务启动'
+    wait_for:
+      port: '{{ prometheus_alert.port }}'
+
+  - name: '<{{ cmd | upper }}> | 创建 PrometheusAlert 安装标记'
+    shell: |
+      set -ex
+      mkdir -p ~/.flag
+      touch {{ flag }}
+
+  when:
+  - cmd == "install"
+  - not ret.stat.exists
+  - prometheus_alert.enable
+  - ansible_architecture == "x86_64"
+
+# 卸载 PrometheusAlert
+- block:
+  - name: '<{{ cmd | upper }}> | 卸载 PrometheusAlert'
+    shell: |
+      . /etc/profile
+      cd {{ prometheus_alert.dir.main }}
+      docker-compose down
+
+  - name: '<{{ cmd | upper }}> | 清除 PrometheusAlert 相关目录'
+    shell: |
+      rm -rf {{ prometheus_alert.dir.main }}
+      rm -rf {{ flag }}
+
+  when:
+  - cmd == "remove"
+  - ret.stat.exists
+  - prometheus_alert.enable
+  - ansible_architecture == "x86_64"

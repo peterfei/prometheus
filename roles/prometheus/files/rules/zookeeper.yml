@@ -1,0 +1,11 @@
+groups:
+- name: Zookeeper
+  rules:
+  - alert: Zookeeper 连接失败
+    expr: up{type="zookeeper"} == 0
+    for: 30s
+    labels:
+      severity: emergency
+    annotations:
+      summary: Zookeeper ({{ $labels.instance }}) 连接失败
+      description: "Zookeeper {{ $labels.instance }} 连接失败!"

@@ -1,0 +1,11 @@
+groups:
+- name: MySQL
+  rules:
+  - alert: MySQL 连接失败
+    expr: up{type="mysql"} == 0
+    for: 30s
+    labels:
+      severity: emergency
+    annotations:
+      summary: MySQL ({{ $labels.instance }}) 连接失败
+      description: "MySQL {{ $labels.instance }} 连接失败!"

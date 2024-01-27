@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  loki:
+    image: {{ loki.image }}
+    container_name: {{ docker.network.name }}-loki
+    hostname: loki
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - {{ loki.dir.conf }}/loki-config.yaml:/etc/loki/loki-config.yaml
+    networks:
+      - {{ docker.network.name }} 
+    ports:
+      - {{ loki.port }}:3100
+    command: "-config.file=/etc/loki/loki-config.yaml"
+
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }}

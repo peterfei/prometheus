@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  promtail:
+    image: {{ promtail.image }}
+    container_name: {{ docker.network.name }}-promtail
+    hostname: promtail
+    restart: always 
+    networks: 
+      - {{ docker.network.name }} 
+    {% for node in promtail.nodes -%} 
+    {% if node.host == inventory_hostname -%} 
+    ports: 
+      - {{ node.port }}:9080 
+    volumes: 
+      - {{ promtail.dir.conf }}/promtail-config.yaml:/etc/promtail/promtail-config.yaml 
+      {% for target in node.targets -%} 
+      - {{ target.path }}:{{ target.path }} 
+      {% endfor %} 
+    {% endif %} 
+    {% endfor %} 
+    command: "-config.file=/etc/promtail/promtail-config.yaml"
+
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }}

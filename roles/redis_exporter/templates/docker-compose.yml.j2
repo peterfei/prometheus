@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  redis-exporter:
+    image: {{ redis_exporter.image }}
+    container_name: {{ docker.network.name }}-redis-exporter
+    hostname: redis-exporter
+    restart: always
+    networks:
+      - {{ docker.network.name }} 
+    {% for node in redis_exporter.nodes -%} 
+    {% if node.host == inventory_hostname -%} 
+    ports: 
+      - {{ node.port }}:9121 
+    command: 
+      - '-redis.addr={{ node.url }}' 
+      - '-redis.password={{ node.password }}' 
+    {% endif %} 
+    {% endfor %} 
+
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }} 

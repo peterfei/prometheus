@@ -1,0 +1,35 @@
+groups:
+- name: Node
+  rules:
+  - alert: 主机连接失败
+    expr: up{type="node"} == 0
+    for: 30s
+    labels:
+      severity: emergency
+    annotations:
+      summary: 主机 ({{ $labels.instance }}) 连接失败
+      description: "主机 {{ $labels.instance }} 连接失败!"
+  - alert: 主机 CPU 负载过高
+    expr: sum by (instance) (avg by (mode, instance) (rate(node_cpu_seconds_total{mode!="idle"}[2m]))) > 0.8
+    for: 0m
+    labels:
+      severity: warning
+    annotations:
+      summary: 主机 ({{ $labels.instance }}) CPU 负载过高
+      description: "主机 {{ $labels.instance }} CPU 负载高于 80%!"
+  - alert: 主机内存不足
+    expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 20
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: 主机 ({{ $labels.instance }}) 内存不足
+      description: "主机 {{ $labels.instance }} 内存剩余不足20%!"
+  - alert: 主机磁盘不足
+    expr: (node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 20 and ON (instance, device, mountpoint) node_filesystem_readonly == 0
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: 主机 ({{ $labels.instance }}) 磁盘不足
+      description: "主机 {{ $labels.instance }} 磁盘剩余不足20%!"

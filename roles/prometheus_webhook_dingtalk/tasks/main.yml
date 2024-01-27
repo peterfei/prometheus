@@ -1,0 +1,70 @@
+---
+# 校验 PrometheusWebhookDingtalk 是否安装
+- name: '<{{ cmd | upper }}> | 校验 PrometheusWebhookDingtalk 是否安装'
+  stat:
+    path: '{{ flag }}'
+  register: ret
+
+# 安装 PrometheusWebhookDingtalk
+- block: 
+  - name: '<{{ cmd | upper }}> | 创建 PrometheusWebhookDingtalk 相关目录'
+    file:
+      path: '{{ item.value }}'
+      state: directory
+    loop: '{{ prometheus_webhook_dingtalk.dir | dict2items }}'
+
+  - name: '<{{ cmd | upper }}> | 安装 PrometheusWebhookDingtalk'
+    template: 
+      src: '{{ item.src }}'
+      dest: '{{ item.dest }}'
+    loop:
+    - src: docker-compose.yml.j2
+      dest: '{{ prometheus_webhook_dingtalk.dir.main }}/docker-compose.yml'
+    - src: conf/config.yml.j2
+      dest: '{{ prometheus_webhook_dingtalk.dir.conf }}/config.yml'
+
+  - name: '<{{ cmd | upper }}> | 初始化 PrometheusWebhookDingtalk 告警模板文件'
+    copy:
+      src: '{{ item }}'
+      dest: '{{ prometheus_webhook_dingtalk.dir.template }}'
+    with_fileglob: 'files/template/*'
+
+  - name: '<{{ cmd | upper }}> | 启动 PrometheusWebhookDingtalk 容器'
+    shell: |
+      . /etc/profile
+      cd {{ prometheus_webhook_dingtalk.dir.main }}
+      docker-compose down
+      docker-compose up -d
+
+  - name: '<{{ cmd | upper }}> | 等待 PrometheusWebhookDingtalk 服务启动'
+    wait_for:
+      port: '{{ prometheus_webhook_dingtalk.port }}'
+
+  - name: '<{{ cmd | upper }}> | 创建 PrometheusWebhookDingtalk 安装标记'
+    shell: |
+      set -ex
+      mkdir -p ~/.flag
+      touch {{ flag }}
+
+  when:
+  - cmd == "install"
+  - not ret.stat.exists
+  - prometheus_webhook_dingtalk.enable
+
+# 卸载 PrometheusWebhookDingtalk
+- block:
+  - name: '<{{ cmd | upper }}> | 卸载 PrometheusWebhookDingtalk'
+    shell: |
+      . /etc/profile
+      cd {{ prometheus_webhook_dingtalk.dir.main }}
+      docker-compose down
+
+  - name: '<{{ cmd | upper }}> | 清除 PrometheusWebhookDingtalk 相关文件'
+    shell: |
+      rm -rf {{ prometheus_webhook_dingtalk.dir.main }}
+      rm -rf {{ flag }}
+
+  when:
+  - cmd == "remove"
+  - ret.stat.exists
+  - prometheus_webhook_dingtalk.enable

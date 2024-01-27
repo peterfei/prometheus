@@ -1,0 +1,71 @@
+---
+# 校验 Alertmanager 是否安装
+- name: '<{{ cmd | upper }}> | 校验 Alertmanager 是否安装'
+  stat:
+    path: '{{ flag }}'
+  register: ret
+
+# 安装 Alertmanager
+- block: 
+  - name: '<{{ cmd | upper }}> | 创建 Alertmanager 相关目录'
+    file:
+      path: '{{ item.value }}'
+      state: directory
+    loop: '{{ alertmanager.dir | dict2items }}'
+
+  - name: '<{{ cmd | upper }}> | 安装 Alertmanager'
+    template: 
+      src: '{{ item.src }}'
+      dest: '{{ item.dest }}'
+    loop:
+    - src: docker-compose.yml.j2
+      dest: '{{ alertmanager.dir.main }}/docker-compose.yml'
+    - src: conf/alertmanager.yml.j2
+      dest: '{{ alertmanager.dir.conf }}/alertmanager.yml'
+
+  - name: '<{{ cmd | upper }}> | 初始化 Alertmanager 模板文件'
+    copy:
+      src: '{{ item }}'
+      dest: '{{ alertmanager.dir.template }}'
+    with_fileglob: 'files/template/*'
+
+  - name: '<{{ cmd | upper }}> | 启动 Alertmanager 容器'
+    shell: |
+      . /etc/profile
+      chown -R 65534.65534 {{ alertmanager.dir.conf }} {{ alertmanager.dir.template }}
+      cd {{ alertmanager.dir.main }}
+      docker-compose down
+      docker-compose up -d
+
+  - name: '<{{ cmd | upper }}> | 等待 Alertmanager 服务启动'
+    wait_for:
+      port: '{{ alertmanager.port }}'
+
+  - name: '<{{ cmd | upper }}> | 创建 Alertmanager 安装标记'
+    shell: |
+      set -ex
+      mkdir -p ~/.flag
+      touch {{ flag }}
+
+  when:
+  - cmd == "install"
+  - not ret.stat.exists
+  - alertmanager.enable
+
+# 卸载 Alertmanager
+- block:
+  - name: '<{{ cmd | upper }}> | 卸载 Alertmanager'
+    shell: |
+      . /etc/profile
+      cd {{ alertmanager.dir.main }}
+      docker-compose down
+
+  - name: '<{{ cmd | upper }}> | 清除 Alertmanager 相关文件'
+    shell: |
+      rm -rf {{ alertmanager.dir.main }}
+      rm -rf {{ flag }}
+
+  when:
+  - cmd == "remove"
+  - ret.stat.exists
+  - alertmanager.enable

@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  prometheus-alert:
+    image: {{ prometheus_alert.image }}
+    container_name: {{ docker.network.name }}-prometheus-alert
+    hostname: prometheus-alert
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - {{ prometheus_alert.dir.conf }}:/app/conf
+      - {{ prometheus_alert.dir.db }}:/app/db
+      - {{ prometheus_alert.dir.logs }}:/app/logs
+    networks:
+      - {{ docker.network.name }} 
+    ports:
+      - {{ prometheus_alert.port }}:8080
+
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }}

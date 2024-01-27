@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  mongodb-exporter:
+    image: {{ mongodb_exporter.image }}
+    container_name: {{ docker.network.name }}-mongodb-exporter
+    hostname: mongodb-exporter
+    restart: always 
+    networks:
+      - {{ docker.network.name }} 
+    {% for node in mongodb_exporter.nodes -%} 
+    {% if node.host == inventory_hostname -%} 
+    ports: 
+      - {{ node.port }}:9126 
+    command: 
+      - '--mongodb.uri=mongodb://{{ node.url }}' 
+    {% endif %} 
+    {% endfor %} 
+
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }} 

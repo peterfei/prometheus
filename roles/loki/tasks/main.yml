@@ -1,0 +1,65 @@
+---
+# 校验 Loki 是否安装
+- name: '<{{ cmd | upper }}> | 校验 Loki 是否安装'
+  stat:
+    path: '{{ flag }}'
+  register: ret
+
+# 安装 Loki
+- block: 
+  - name: '<{{ cmd | upper }}> | 创建 Loki 相关目录'
+    file:
+      path: '{{ item.value }}'
+      state: directory
+    loop: '{{ loki.dir | dict2items }}'
+
+  - name: '<{{ cmd | upper }}> | 安装 Loki'
+    template: 
+      src: '{{ item.src }}'
+      dest: '{{ item.dest }}'
+    loop:
+    - src: docker-compose.yml.j2
+      dest: '{{ loki.dir.main }}/docker-compose.yml'
+    - src: conf/loki-config.yaml.j2
+      dest: '{{ loki.dir.conf }}/loki-config.yaml'
+
+  - name: '<{{ cmd | upper }}> | 启动 Loki 容器'
+    shell: |
+      . /etc/profile
+      chown -R 10001.10001 {{ loki.dir.conf }}
+      cd {{ loki.dir.main }}
+      docker-compose down
+      docker-compose up -d
+
+  - name: '<{{ cmd | upper }}> | 等待 Loki 服务启动'
+    wait_for:
+      port: '{{ loki.port }}'
+
+  - name: '<{{ cmd | upper }}> | 创建 Loki 安装标记'
+    shell: |
+      set -ex
+      mkdir -p ~/.flag
+      touch {{ flag }}
+
+  when:
+  - cmd == "install"
+  - not ret.stat.exists
+  - loki.enable
+
+# 卸载 Loki
+- block:
+  - name: '<{{ cmd | upper }}> | 卸载 Loki'
+    shell: |
+      . /etc/profile
+      cd {{ loki.dir.main }}
+      docker-compose down
+
+  - name: '<{{ cmd | upper }}> | 清除 Loki 相关文件'
+    shell: |
+      rm -rf {{ loki.dir.main }}
+      rm -rf {{ flag }}
+
+  when:
+  - cmd == "remove"
+  - ret.stat.exists
+  - loki.enable

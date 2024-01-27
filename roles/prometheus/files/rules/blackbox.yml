@@ -1,0 +1,11 @@
+groups:
+- name: Blackbox
+  rules:
+  - alert: Blackbox 连接失败
+    expr: probe_success == 0
+    for: 30s
+    labels:
+      severity: emergency
+    annotations:
+      summary: Blackbox ({{ $labels.instance }}) 连接失败
+      description: "Blackbox {{ $labels.instance }} 连接失败!"

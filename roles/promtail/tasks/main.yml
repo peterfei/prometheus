@@ -1,0 +1,62 @@
+---
+# 校验 Promtail 是否安装
+- name: '<{{ cmd | upper }}> | 校验 Promtail 是否安装'
+  stat:
+    path: '{{ flag }}'
+  register: ret
+
+# 安装 Promtail
+- block: 
+  - name: '<{{ cmd | upper }}> | 创建 Promtail 相关目录'
+    file:
+      path: '{{ item.value }}'
+      state: directory
+    loop: '{{ promtail.dir | dict2items }}'
+
+  - name: '<{{ cmd | upper }}> | 安装 Promtail'
+    template: 
+      src: '{{ item.src }}'
+      dest: '{{ item.dest }}'
+    loop:
+    - src: docker-compose.yml.j2
+      dest: '{{ promtail.dir.main }}/docker-compose.yml'
+    - src: conf/promtail-config.yaml.j2
+      dest: '{{ promtail.dir.conf }}/promtail-config.yaml'
+
+  - name: '<{{ cmd | upper }}> | 启动 Promtail 容器'
+    shell: |
+      . /etc/profile
+      cd {{ promtail.dir.main }}
+      docker-compose down
+      docker-compose up -d
+
+#  - name: '<{{ cmd | upper }}> | 等待 Promtail 服务启动'
+#    wait_for:
+#      port: '{{ promtail.port }}'
+
+  - name: '<{{ cmd | upper }}> | 创建 Promtail 安装标记'
+    shell: |
+      set -ex
+      mkdir -p ~/.flag
+      touch {{ flag }}
+
+  when:
+  - cmd == "install"
+  - not ret.stat.exists
+
+# 卸载 Promtail
+- block:
+  - name: '<{{ cmd | upper }}> | 卸载 Promtail'
+    shell: |
+      . /etc/profile
+      cd {{ promtail.dir.main }}
+      docker-compose down
+
+  - name: '<{{ cmd | upper }}> | 清除 Promtail 相关文件'
+    shell: |
+      rm -rf {{ promtail.dir.main }}
+      rm -rf {{ flag }}
+
+  when:
+  - cmd == "remove"
+  - ret.stat.exists

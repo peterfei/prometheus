@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  elasticsearch-exporter:
+    image: {{ elasticsearch_exporter.image }}
+    container_name: {{ docker.network.name }}-elasticsearch-exporter
+    hostname: elasticsearch-exporter
+    restart: always 
+    networks: 
+      - {{ docker.network.name }} 
+    {% for node in elasticsearch_exporter.nodes -%} 
+    {% if node.host == inventory_hostname -%} 
+    ports: 
+      - {{ node.port }}:9114 
+    command: 
+      - "--es.uri=http://{{ node.url }}" 
+    {% endif %} 
+    {% endfor %} 
+
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }} 

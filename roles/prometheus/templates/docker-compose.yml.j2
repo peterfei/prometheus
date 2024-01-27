@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  prometheus:
+    image: {{ prometheus.image }}
+    container_name: {{ docker.network.name }}-prometheus
+    hostname: prometheus
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - {{ prometheus.dir.conf }}/prometheus.yml:/etc/prometheus/prometheus.yml
+      - {{ prometheus.dir.rules }}:/etc/prometheus/rules
+      - {{ prometheus.dir.data }}:/prometheus/data
+    networks:
+      - {{ docker.network.name }} 
+    ports:
+      - {{ prometheus.port }}:9090
+    command: "--config.file=/etc/prometheus/prometheus.yml --web.enable-lifecycle"
+
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }}

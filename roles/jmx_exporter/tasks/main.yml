@@ -1,0 +1,69 @@
+---
+# 校验 JMX Exporter 是否安装
+- name: '<{{ cmd | upper }}> | 校验 JMX Exporter 是否安装'
+  stat:
+    path: '{{ flag }}'
+  register: ret
+
+# 安装 JMX Exporter
+- block: 
+  - name: '<{{ cmd | upper }}> | 创建 JMX Exporter 相关目录'
+    file:
+      path: '{{ item.value }}'
+      state: directory
+    loop: '{{ jmx_exporter.dir | dict2items }}'
+
+  - name: '<{{ cmd | upper }}> | 准备 JMX Exporter Jar 文件'
+    copy:
+      src: files/{{ jmx_exporter.jar }}
+      dest: '{{ jmx_exporter.dir.main }}/{{ jmx_exporter.jar }}'
+
+  - name: '<{{ cmd | upper }}> | 安装 JMX Exporter'
+    template: 
+      src: '{{ item.src }}'
+      dest: '{{ item.dest }}'
+    loop:
+    - src: docker-compose.yml.{{ jmx_exporter.model }}.j2
+      dest: '{{ jmx_exporter.dir.main }}/docker-compose.yml'
+    - src: conf/config.yaml.{{ jmx_exporter.model }}.j2
+      dest: '{{ jmx_exporter.dir.conf }}/config.yaml'
+
+  - name: '<{{ cmd | upper }}> | 启动 JMX Exporter 容器'
+    shell: |
+      . /etc/profile
+      cd {{ jmx_exporter.dir.main }}
+      docker-compose down
+      docker-compose up -d
+
+#  - name: '<{{ cmd | upper }}> | 等待 JMX Exporter 服务启动'
+#    wait_for:
+#      port: '{{ jmx_exporter.port }}'
+
+  - name: '<{{ cmd | upper }}> | 创建 JMX Exporter 安装标记'
+    shell: |
+      set -ex
+      mkdir -p ~/.flag
+      touch {{ flag }}
+
+  when:
+  - cmd == "install"
+  - not ret.stat.exists
+  - ansible_architecture == "x86_64"
+
+# 卸载 JMX Exporter
+- block:
+  - name: '<{{ cmd | upper }}> | 卸载 JMX Exporter'
+    shell: |
+      . /etc/profile
+      cd {{ jmx_exporter.dir.main }}
+      docker-compose down
+
+  - name: '<{{ cmd | upper }}> | 清除 JMX Exporter 相关文件'
+    shell: |
+      rm -rf {{ jmx_exporter.dir.main }}
+      rm -rf {{ flag }}
+
+  when:
+  - cmd == "remove"
+  - ret.stat.exists
+  - - ansible_architecture == "x86_64"

@@ -1,0 +1,11 @@
+groups:
+- name: ElasticSearch
+  rules:
+  - alert: ElasticSearch 连接失败
+    expr: up{type="elasticsearch"} == 0
+    for: 30s
+    labels:
+      severity: emergency
+    annotations:
+      summary: ElasticSearch ({{ $labels.instance }}) 连接失败
+      description: "ElasticSearch {{ $labels.instance }} 连接失败!"

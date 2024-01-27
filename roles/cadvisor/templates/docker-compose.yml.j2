@@ -1,0 +1,24 @@
+version: "3.9" 
+
+services: 
+  cadvisor: 
+    image: {{ cadvisor.image }} 
+    container_name: {{ docker.network.name }}-cadvisor 
+    hostname: cadvisor 
+    restart: always 
+    privileged: true 
+    volumes: 
+      - /etc/localtime:/etc/localtime:ro 
+      - /:/rootfs:ro 
+      - /var/run:/var/run:rw 
+      - /sys:/sys:ro 
+      - /var/lib/docker/:/var/lib/docker:ro 
+    networks: 
+      - {{ docker.network.name }} 
+    ports: 
+      - {{ cadvisor.port }}:8080 
+
+networks: 
+  {{ docker.network.name }}: 
+    external: true 
+    name: {{ docker.network.name }} 

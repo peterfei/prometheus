@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  nginx-prometheus-exporter:
+    image: {{ nginx_prometheus_exporter.image }}
+    container_name: {{ docker.network.name }}-nginx-prometheus-exporter
+    hostname: nginx-prometheus-exporter
+    restart: always
+    privileged: true 
+    networks: 
+      - {{ docker.network.name }} 
+    {% for node in nginx_prometheus_exporter.nodes -%} 
+    {% if node.host == inventory_hostname -%} 
+    ports: 
+      - {{ node.port }}:9113 
+    volumes: 
+      - /etc/localtime:/etc/localtime:ro 
+    command: "-nginx.scrape-uri={{ node.url }}" 
+    {% endif %} 
+    {% endfor %} 
+
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }} 

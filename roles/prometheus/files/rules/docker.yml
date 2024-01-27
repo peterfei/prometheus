@@ -1,0 +1,11 @@
+groups:
+- name: Docker
+  rules:
+  - alert: Docker 连接失败
+    expr: up{type="docker"} == 0
+    for: 30s
+    labels:
+      severity: emergency
+    annotations:
+      summary: Docker ({{ $labels.instance }}) 连接失败
+      description: "Docker {{ $labels.instance }} 连接失败!"

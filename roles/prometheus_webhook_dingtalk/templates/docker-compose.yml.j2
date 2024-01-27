@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  prometheus-webhook-dingtalk:
+    image: {{ prometheus_webhook_dingtalk.image }}
+    container_name: {{ docker.network.name }}-prometheus-webhook-dingtalk
+    hostname: prometheus-webhook-dingtalk
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - {{ prometheus_webhook_dingtalk.dir.conf }}/config.yml:/etc/prometheus-webhook-dingtalk/config.yml
+      - {{ prometheus_webhook_dingtalk.dir.template }}/template.tmpl:/etc/prometheus-webhook-dingtalk/templates/legacy/template.tmpl
+    networks:
+      - {{ docker.network.name }} 
+    ports:
+      - {{ prometheus_webhook_dingtalk.port }}:8060
+    environment:
+      - config.file=/etc/prometheus-webhook-dingtalk/config.yml
+
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }}

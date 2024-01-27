@@ -1,0 +1,63 @@
+---
+# 校验 Blackbox Exporter 是否安装
+- name: '<{{ cmd | upper }}> | 校验 Blackbox Exporter 是否安装'
+  stat:
+    path: '{{ flag }}'
+  register: ret
+
+# 安装 Blackbox Exporter
+- block: 
+  - name: '<{{ cmd | upper }}> | 创建 Blackbox Exporter 相关目录'
+    file:
+      path: '{{ item.value }}'
+      state: directory
+    loop: '{{ blackbox_exporter.dir | dict2items }}'
+
+  - name: '<{{ cmd | upper }}> | 安装 Blackbox Exporter'
+    template: 
+      src: '{{ item.src }}'
+      dest: '{{ item.dest }}'
+    loop:
+    - src: docker-compose.yml.j2
+      dest: '{{ blackbox_exporter.dir.main }}/docker-compose.yml'
+    - src: conf/blackbox.yml.j2
+      dest: '{{ blackbox_exporter.dir.conf }}/blackbox.yml'
+
+  - name: '<{{ cmd | upper }}> | 启动 Blackbox Exporter 容器'
+    shell: |
+      . /etc/profile
+      chown -R 65534.65534 {{ blackbox_exporter.dir.conf }}
+      cd {{ blackbox_exporter.dir.main }}
+      docker-compose down
+      docker-compose up -d
+
+  - name: '<{{ cmd | upper }}> | 等待 Blackbox Exporter 服务启动'
+    wait_for:
+      port: '{{ blackbox_exporter.port }}'
+
+  - name: '<{{ cmd | upper }}> | 创建 Blackbox Exporter 安装标记'
+    shell: |
+      set -ex
+      mkdir -p ~/.flag
+      touch {{ flag }}
+
+  when:
+  - cmd == "install"
+  - not ret.stat.exists
+
+# 卸载 Blackbox Exporter
+- block:
+  - name: '<{{ cmd | upper }}> | 卸载 Blackbox Exporter'
+    shell: |
+      . /etc/profile
+      cd {{ blackbox_exporter.dir.main }}
+      docker-compose down
+
+  - name: '<{{ cmd | upper }}> | 清除 Blackbox Exporter 相关文件'
+    shell: |
+      rm -rf {{ blackbox_exporter.dir.main }}
+      rm -rf {{ flag }}
+
+  when:
+  - cmd == "remove"
+  - ret.stat.exists

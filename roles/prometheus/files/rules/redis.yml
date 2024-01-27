@@ -1,0 +1,11 @@
+groups:
+- name: Redis
+  rules:
+  - alert: Redis 连接失败
+    expr: up{type="redis"} == 0
+    for: 30s
+    labels:
+      severity: emergency
+    annotations:
+      summary: Redis ({{ $labels.instance }}) 连接失败
+      description: "Redis {{ $labels.instance }} 连接失败!"

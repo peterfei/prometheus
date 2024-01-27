@@ -1,0 +1,59 @@
+---
+# 校验 Mysqld Exporter 是否安装
+- name: '<{{ cmd | upper }}> | 校验 Mysqld Exporter 是否安装'
+  stat:
+    path: '{{ flag }}'
+  register: ret
+
+# 安装 Mysqld Exporter
+- block: 
+  - name: '<{{ cmd | upper }}> | 创建 Mysqld Exporter 相关目录'
+    file:
+      path: '{{ mysqld_exporter.dir }}'
+      state: directory
+
+  - name: '<{{ cmd | upper }}> | 安装 Mysqld Exporter'
+    template: 
+      src: '{{ item.src }}'
+      dest: '{{ item.dest }}'
+    loop:
+    - src: docker-compose.yml.j2
+      dest: '{{ mysqld_exporter.dir }}/docker-compose.yml'
+
+  - name: '<{{ cmd | upper }}> | 启动 Mysqld Exporter 容器'
+    shell: |
+      . /etc/profile
+      cd {{ mysqld_exporter.dir }}
+      docker-compose down
+      docker-compose up -d
+
+#  - name: '<{{ cmd | upper }}> | 等待 Mysqld Exporter 服务启动'
+#    wait_for:
+#      port: '{{ mysqld_exporter.port }}'
+
+  - name: '<{{ cmd | upper }}> | 创建 Mysqld Exporter 安装标记'
+    shell: |
+      set -ex
+      mkdir -p ~/.flag
+      touch {{ flag }}
+
+  when:
+  - cmd == "install"
+  - not ret.stat.exists
+
+# 卸载 Mysqld Exporter
+- block:
+  - name: '<{{ cmd | upper }}> | 卸载 Mysqld Exporter'
+    shell: |
+      . /etc/profile
+      cd {{ mysqld_exporter.dir }}
+      docker-compose down
+
+  - name: '<{{ cmd | upper }}> | 清除 Mysqld Exporter 相关文件'
+    shell: |
+      rm -rf {{ mysqld_exporter.dir }}
+      rm -rf {{ flag }}
+
+  when:
+  - cmd == "remove"
+  - ret.stat.exists

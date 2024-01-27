@@ -1,0 +1,212 @@
+---
+# 部署目录（部署时会在此目录下生成各服务的子目录）
+base_dir: /home/promtheus
+
+# Docker 配置
+docker: 
+  ## Docker Engine 安装包名称
+  package: docker-24.0.7.tgz
+  ## Docker 部署目录
+  dir:
+    ### 主目录
+    main: '{{ base_dir }}/docker'
+    ### 可执行文件目录
+    bin: '{{ base_dir }}/docker/bin'
+    ### 数据目录
+    data: '{{ base_dir }}/docker/data'
+  ## 部署 Prometheus 相关组件时使用的网络
+  network:
+    name: prometheus
+    subnet: 10.21.22.0/24
+
+# Prometheus Server 配置
+prometheus:
+  ## 镜像
+  image: prom/prometheus:v2.48.0
+  ## 部署目录
+  dir:
+    ### 主目录
+    main: '{{ base_dir }}/prometheus'
+    ### 配置文件目录
+    conf: '{{ base_dir }}/prometheus/conf'
+    ### 告警规则文件目录
+    rules: '{{ base_dir }}/prometheus/rules'
+    ### 数据目录
+    data: '{{ base_dir }}/prometheus/data'
+  ## 端口号
+  port: 9090
+
+# Grafana 配置
+grafana:
+  ## 是否部署 Grafana
+  enable: true
+  ## 镜像
+  image: grafana/grafana:10.2.2
+  ## 部署目录
+  dir:
+    ### 主目录
+    main: '{{ base_dir }}/grafana'
+    ### 配置文件目录
+    conf: '{{ base_dir }}/grafana/conf'
+    ### 数据目录
+    data: '{{ base_dir }}/grafana/data'
+  ## 端口号
+  port: 3000
+
+# Alertmanager 配置
+alertmanager:
+  ## 是否部署 Alertmanager
+  enable: true
+  ## 镜像
+  image: prom/alertmanager:v0.26.0
+  ## 部署目录
+  dir:
+    ### 主目录
+    main: '{{ base_dir }}/alertmanager'
+    ### 配置文件目录
+    conf: '{{ base_dir }}/alertmanager/conf'
+    ### 模板目录
+    template: '{{ base_dir }}/alertmanager/template'
+  ## 端口号
+  port: 9093
+
+# Prometheus Alert 配置 （ Prometheus Alert 和 Prometheus Webhook Dingtalk 只能开启其中一个，不能同时开启）
+prometheus_alert:
+  ## 是否启用 Prometheus Alert
+  enable: false
+  ## 镜像
+  image: feiyu563/prometheus-alert:v4.9
+  ## 部署目录
+  dir: 
+    ### 主目录
+    main: '{{ base_dir }}/prometheus-alert'
+    ### 配置文件目录
+    conf: '{{ base_dir }}/prometheus-alert/conf'
+    ### 数据库目录
+    db: '{{ base_dir }}/prometheus-alert/db'
+    ### 数据文件目录
+    logs: '{{ base_dir }}/prometheus-alert/logs'
+  ## 端口号
+  port: 9080 #8080
+  ## 用户名
+  user: 'admin'
+  ## 密码
+  password: '123456'
+  ## 标题
+  title: 'PrometheusAlert'
+  ## 访问 URL
+  url: 'http://192.168.10.225:9090/'
+
+# Prometheus Webhook Dingtalk 配置 （ Prometheus Alert 和 Prometheus Webhook Dingtalk 只能开启其中一个，不能同时开启）
+prometheus_webhook_dingtalk:
+  ## 是否启用 Prometheus Webhook Dingtalk
+  enable: true
+  ## 镜像
+  image: timonwong/prometheus-webhook-dingtalk:v2.1.0
+  ## 部署目录
+  dir:
+    ### 主目录
+    main: '{{ base_dir }}/prometheus-webhook-dingtalk'
+    ### 配置文件目录
+    conf: '{{ base_dir }}/prometheus-webhook-dingtalk/conf'
+    ### 模板文件目录
+    template: '{{ base_dir }}/prometheus-webhook-dingtalk/template'
+  ## 端口号
+  port: 9060 #8060
+
+# 告警配置
+alert:
+  ## 钉钉机器人
+  dingtalk:
+    access_token: '4b00ca8135bad30834b3b8a63f5fa97d4d435c5c4147d053af49d626d748d0d4'
+  ## 短信
+  message:
+    type: 'tx'
+    phone: '12300001111'
+    ### 注意：部署完成之后，需要手动将 prometheus-webhook-dingtalk/conf/config.yml 文件的 “【【” 替换为 “{{”，将 “】】” 替换为 “}}”
+    title: '【【template "legacy.title" . 】】'
+    text: '【【template "email.to.message" .】】'
+
+# Loki 配置
+loki:
+  ## 是否启用 Loki
+  enable: true
+  ## 镜像
+  image: grafana/loki:2.9.2
+  ## 部署目录
+  dir:
+    ### 主目录
+    main: '{{ base_dir }}/loki'
+    ### 配置文件目录
+    conf: '{{ base_dir }}/loki/conf'
+  ## 端口号
+  port: 3100
+
+# Node Exporter 配置
+node_exporter:
+  ## 是否启用 Node Exporter 
+  enable: true
+  ## 镜像
+  image: prom/node-exporter:v1.7.0
+  ## 部署目录
+  dir: '{{ base_dir }}/exporter/node-exporter'
+  ## 端口号
+  port: 9100
+
+# CAdvisor 配置
+cadvisor:
+  ## 是否启用 CAdvisor
+  enable: true
+  ## 镜像
+  image: zcube/cadvisor:v0.45.0
+  ## 部署目录
+  dir: '{{ base_dir }}/exporter/cadvisor'
+  ## 端口号
+  port: 9180 #8088
+
+# Blackbox Exporter 配置
+blackbox_exporter:
+  ## 是否启用 Blackbox Exporter
+  enable: true
+  ## 镜像
+  image: prom/blackbox-exporter:v0.24.0
+  ## 部署目录
+  dir:
+    ### 主目录
+    main: '{{ base_dir }}/exporter/blackbox'
+    ### 配置文件目录
+    conf: '{{ base_dir }}/exporter/blackbox/conf'
+  ## 端口号
+  port: 9115
+  ## 探测 URL
+  targets:
+    - http://git.1357.cn
+    - http://git.1357.cnn
+
+# Mysqld Exporter 配置
+#mysqld_exporter:
+#  ## 镜像
+#  image: prom/mysqld-exporter:v0.15.0
+#  ## 部署目录
+#  dir: '{{ base_dir }}/exporter/mysqld-exporter'
+#  ## 采集节点
+#  nodes:
+#      ### 主机
+#    - host: 192.168.10.225
+#      ### Mysqld Exporter 端口号
+#      port: 9104
+#      ### MySQL URL
+#      url: 192.168.10.225:3306
+#      ### MySQL 用户名
+#      user: exporter
+#      ### MySQL 密码
+#      password: 123456
+#      ### MySQL 数据库
+#      database: 
+#    - host: 192.168.1.1
+#      port: 9104
+#      url: 192.168.1.1
+#      user: exporter
+#      password: 123456
+#      database: 
+

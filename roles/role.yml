@@ -1,0 +1,198 @@
+# 安装 Docker Engine
+- hosts: dockerce
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags:
+    - all
+    - server
+    - exporter
+    - node
+    - docker
+    - mysql
+    - mongodb
+    - redis
+    - rabbitmq
+    - rocketmq
+    - elasticsearch
+    - zookeeper
+    - jmx
+    - nginx
+    - blackbox
+    - promtail
+    - dockerce
+  roles:
+  - role: docker
+    when: cmd == "install"
+
+# 部署 Prometheus 服务端相关组件
+- hosts: server
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags: 
+    - all
+    - server
+  roles:
+  - role: prometheus
+  - role: grafana
+  - role: alertmanager
+  - role: prometheus_alert
+  - role: prometheus_webhook_dingtalk
+  - role: loki
+
+# 部署 Prometheus Node Exporter 组件
+- hosts: node
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags:
+    - all 
+    - exporter
+    - node
+  roles: 
+  - role: node_exporter
+
+# 部署 cAdvisor 组件
+- hosts: docker
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags:
+    - all
+    - exporter 
+    - docker
+  roles:
+  - role: cadvisor
+
+# 部署 Prometheus Blackbox Exporter 组件
+- hosts: blackbox
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags: 
+    - all
+    - exporter
+    - blackbox
+  roles:
+  - role: blackbox_exporter
+
+# 部署 Prometheus Mysqld Exporter 组件
+- hosts: mysql
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags:
+    - all
+    - exporter 
+    - mysql
+  roles:
+  - role: mysqld_exporter
+
+# 部署 Prometheus MongoDB Exporter 组件
+- hosts: mongodb
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags: 
+    - all
+    - exporter
+    - mongodb
+  roles:
+  - role: mongodb_exporter
+
+# 部署 Prometheus Redis Exporter 组件
+- hosts: redis
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags: 
+    - all
+    - exporter
+    - redis
+  roles:
+  - role: redis_exporter
+
+# 部署 Prometheus RabbitMQ Exporter 组件
+- hosts: rabbitmq
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags: 
+    - all
+    - exporter
+    - rabbitmq
+  roles:
+  - role: rabbitmq_exporter
+
+# 部署 Prometheus RocketMQ Exporter 组件
+- hosts: rocketmq
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags: 
+    - all
+    - exporter
+    - rocketmq
+  roles:
+  - role: rocketmq_exporter
+
+# 部署 Prometheus ElasticSearch Exporter 组件
+- hosts: elasticsearch
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags: 
+    - all
+    - exporter
+    - elasticsearch
+  roles:
+  - role: elasticsearch_exporter
+
+# 部署 Prometheus Zookeeper Exporter 组件
+- hosts: zookeeper
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags: 
+    - all
+    - exporter
+    - zookeeper
+  roles:
+  - role: zookeeper_exporter
+
+# 部署 Prometheus JMX Exporter 组件
+- hosts: jmx
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags:
+    - all
+    - exporter
+    - jmx
+  roles:
+  - role: jmx_exporter
+
+# 部署 Prometheus Nginx Exporter 组件
+- hosts: nginx
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags:
+    - all
+    - exporter
+    - nginx
+  roles:
+  - role: nginx_prometheus_exporter
+
+# 部署 Promtail 组件
+- hosts: promtail
+  remote_user: root
+  become: yes
+  gather_facts: yes
+  tags: 
+    - all
+    - exporter
+    - promtail
+  roles:
+  - role: promtail

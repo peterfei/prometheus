@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  zookeeper-exporter:
+    image: {{ zookeeper_exporter.image }}
+    container_name: {{ docker.network.name }}-zookeeper-exporter
+    hostname: zookeeper-exporter
+    restart: always 
+    networks:
+      - {{ docker.network.name }} 
+    {% for node in zookeeper_exporter.nodes -%} 
+    {% if node.host == inventory_hostname -%} 
+    ports: 
+      - {{ node.port }}:9141 
+    command: "--zk-hosts='{{ node.url }}' --timeout=5" 
+    {% endif %} 
+    {% endfor %} 
+
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }} 

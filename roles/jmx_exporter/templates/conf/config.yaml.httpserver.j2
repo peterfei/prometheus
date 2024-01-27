@@ -1,0 +1,7 @@
+{% for node in jmx_exporter.nodes -%}
+{% if node.host == inventory_hostname -%}
+hostPort: {{ node.url }}
+{% endif %}
+{% endfor %} 
+rules:
+- pattern: ".*"

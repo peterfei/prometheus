@@ -1,0 +1,22 @@
+version: "3.9" 
+
+services: 
+  blackbox-exporter: 
+    image: {{ blackbox_exporter.image }} 
+    container_name: {{ docker.network.name }}-blackbox-exporter 
+    hostname: blackbox-exporter 
+    restart: always 
+    volumes: 
+      - /etc/localtime:/etc/localtime:ro 
+      - {{ blackbox_exporter.dir.conf }}/blackbox.yml:/etc/blackbox_exporter/config/blackbox.yml:ro 
+    networks: 
+      - {{ docker.network.name }} 
+    ports: 
+      - {{ blackbox_exporter.port }}:9115 
+    environment: 
+      - config.file=/etc/blackbox_exporter/config/blackbox.yml 
+
+networks: 
+  {{ docker.network.name }}: 
+    external: true 
+    name: {{ docker.network.name }} 

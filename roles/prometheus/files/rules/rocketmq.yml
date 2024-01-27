@@ -1,0 +1,11 @@
+groups:
+- name: RocketMQ
+  rules:
+  - alert: RocketMQ 连接失败
+    expr: up{type="rocketmq"} == 0
+    for: 30s
+    labels:
+      severity: emergency
+    annotations:
+      summary: RocketMQ ({{ $labels.instance }}) 连接失败
+      description: "RocketMQ {{ $labels.instance }} 连接失败!"

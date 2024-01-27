@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  jmx-exporter:
+    image: {{ jmx_exporter.image }}
+    container_name: {{ docker.network.name }}-jmx-exporter
+    hostname: jmx-exporter
+    restart: always
+    privileged: true 
+    networks: 
+      - {{ docker.network.name }} 
+    {% for node in jmx_exporter.nodes -%} 
+    {% if node.host == inventory_hostname -%} 
+    ports: 
+      - {{ node.port }}:{{ node.port }} 
+    volumes: 
+      - /etc/localtime:/etc/localtime:ro 
+      - {{ jmx_exporter.dir.main }}/{{ jmx_exporter.jar }}:/jmx-exporter/jmx_prometheus_{{ jmx_exporter.model }}-0.17.2.jar 
+      - {{ jmx_exporter.dir.main }}/conf/config.yaml:/jmx-exporter/config.yaml 
+    command: "java -jar /jmx-exporter/jmx_prometheus_{{ jmx_exporter.model }}-0.17.2.jar {{ node.port }} /jmx-exporter/config.yaml" 
+    {% endif %} 
+    {% endfor %} 
+
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }} 

@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  rocketmq-exporter:
+    image: {{ rocketmq_exporter.image }}
+    container_name: {{ docker.network.name }}-rocketmq-exporter
+    hostname: rocketmq-exporter
+    restart: always 
+    networks:
+      - {{ docker.network.name }} 
+    {% for node in rocketmq_exporter.nodes -%} 
+    {% if node.host == inventory_hostname -%} 
+    ports: 
+      - {{ node.port }}:5557 
+    volumes: 
+      - {{ rocketmq_exporter.dir }}/{{ rocketmq_exporter.jar }}:/rocketmq-exporter/rocketmq-exporter-0.0.2-SNAPSHOT.jar 
+    command: "java -jar /rocketmq-exporter/rocketmq-exporter-0.0.2-SNAPSHOT.jar --rocketmq.config.namesrvAddr=http://{{ node.url }} --rocketmq.config.rocketmqVersion={{ node.version }}" 
+    {% endif %} 
+    {% endfor %} 
+
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }} 

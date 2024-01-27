@@ -1,0 +1,19 @@
+version: '3'
+services:
+  grafana:
+    image: {{ grafana.image }}
+    container_name: {{ docker.network.name }}-grafana
+    hostname: grafana
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - {{ grafana.dir.conf }}/grafana.ini:/etc/grafana/grafana.ini
+      - {{ grafana.dir.data }}:/var/lib/grafana
+    networks:
+      - {{ docker.network.name }}
+    ports:
+      - {{ grafana.port }}:3000
+networks:
+  {{ docker.network.name }}:
+    external: true
+    name: {{ docker.network.name }}

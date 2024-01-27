@@ -1,0 +1,159 @@
+---
+# 校验 Docker Engine 是否安装
+- name: '<{{ cmd | upper }}> | 校验 Docker Engine 是否安装'
+  shell: |
+    . /etc/profile
+    docker info
+  register: docker_ret
+  ignore_errors: true
+
+# 校验 Docker Compose 是否安装
+- name: '<{{ cmd | upper }}> | 校验 Docker Compose 是否安装'
+  shell: |
+    . /etc/profile
+    docker-compose version
+  register: compose_ret
+  ignore_errors: true
+
+# 安装 Docker Engine
+- block:
+  - name: '<{{ cmd | upper }}> | 编辑 ~/.bashrc 文件环境变量'
+    blockinfile:
+      path: ~/.bashrc
+      block: |
+        export DOCKER_HOME={{ docker.dir.bin }}
+        export PATH=$PATH:$DOCKER_HOME
+      marker: '#{mark} DOCKER Environment'
+      insertbefore: 'BOF'
+
+  - name: '<{{ cmd | upper }}> | 编辑 /etc/profile 文件环境变量'
+    blockinfile:
+      path: /etc/profile
+      block: |
+        export DOCKER_HOME={{ docker.dir.bin }}
+        export PATH=$PATH:$DOCKER_HOME
+      marker: '#{mark} DOCKER Environment'
+      insertafter: 'EOF'
+
+  - name: '<{{ cmd | upper }}> | 创建 Docker 用户组'
+    shell: 
+      groupadd -r docker
+    ignore_errors: yes
+
+  - name: '<{{ cmd | upper }}> | 创建 Docker 相关目录并更新系统配置'
+    shell: |
+      source /etc/profile
+      mkdir -p {{ docker.dir.main }}
+      mkdir -p {{ docker.dir.bin }}
+      mkdir -p {{ docker.dir.data }}
+      mkdir -p /etc/docker
+      if [[ -e /etc/docker/daemon.json ]];then
+          cp /etc/docker/daemon.json /etc/docker/daemon.json.bak
+      fi
+      modprobe br_netfilter
+      echo 'net.bridge.bridge-nf-call-ip6tables = 1' > /etc/sysctl.d/docker.conf
+      echo 'net.bridge.bridge-nf-call-iptables = 1' >> /etc/sysctl.d/docker.conf
+      echo 'net.ipv4.ip_forward = 1' >> /etc/sysctl.d/docker.conf
+      sysctl --system
+
+  - name: '<{{ cmd | upper }}> | 安装 Docker Engine'
+    unarchive: 
+      src: 'files/{{ ansible_architecture }}/{{ docker.package }}'
+      dest: '{{ docker.dir.bin }}'
+      mode: 0755
+#      extra_opts:
+#        - --strip-components 1
+
+  - name: '<{{ cmd | upper }}> | 删除 Docker 临时文件'
+    shell: |
+      mv {{ docker.dir.bin }}/docker {{ docker.dir.bin }}/docker-tmp
+      mv -f {{ docker.dir.bin }}/docker-tmp/* {{ docker.dir.bin }}
+      rm -rf {{ docker.dir.bin }}/docker-tmp
+
+  - name: '<{{ cmd | upper }}> | 初始化 Docker 相关配置文件'
+    template:
+      src: '{{ item.src }}'
+      dest: '{{ item.dest }}'
+      group: docker
+    loop: 
+    - src: docker.service.j2
+      dest: /lib/systemd/system/docker.service
+    - src: docker.socket.j2
+      dest: /lib/systemd/system/docker.socket
+    - src: daemon.json.j2
+      dest: /etc/docker/daemon.json
+
+  - name: '<{{ cmd | upper }}> | 启动 Docker 服务'
+    systemd:
+      daemon_reload: yes
+      state: restarted
+      name: docker.service
+      enabled: yes
+
+  - name: '<{{ cmd | upper }}> | 创建 Docker 网络' 
+    shell: |
+      . /etc/profile
+      if docker network ls | grep -q {{ docker.network.name }} ; then
+         docker network ls
+      else
+         docker network create {{ docker.network.name }} --subnet {{ docker.network.subnet }}
+      fi
+
+  - name: '<{{ cmd | upper }}> | 添加 Docker 安装标记'
+    shell: |
+      set -ex
+      mkdir -p ~/.flag
+      touch {{ flag }}
+
+  when:
+  - docker_ret.failed
+  - cmd == "install"
+
+# 安装 Docker Compose
+- block: 
+  - name: '<{{ cmd | upper }}> | 安装 Docker Compose'
+    copy:
+      src: files/{{ ansible_architecture }}/docker-compose
+      dest: '{{ docker.dir.bin }}/docker-compose'
+      mode: 0755
+
+  when: 
+  - compose_ret.failed
+  - cmd == "install"
+
+# 卸载 Docker Compose 和 Docker Engine
+- block:
+  - name: '<{{ cmd | upper }}> | 删除 Docker 网络' 
+    shell: |
+      docker network rm {{ docker.network.name }}
+
+  - name: '<{{ cmd | upper }}> | 停止 Docker 服务'
+    systemd:
+      state: stopped
+      name: docker.service
+      enabled: no
+
+  - name: '<{{ cmd | upper }}> | 清除 Docker 环境变量'
+    blockinfile:
+      path: '{{ item }}'
+      marker: '#{mark} DOCKER Environment'
+      state: absent
+      backup: yes
+    loop:
+    - ~/.bashrc
+    - /etc/profile    
+
+  - name: '<{{ cmd | upper }}> | 卸载 Docker Engine 和 Docker Compose'
+    file: 
+      path: '{{ item }}'
+      state: absent
+    loop:
+    - /lib/systemd/system/docker.service 
+    - /lib/systemd/system/docker.socket
+    - '{{ docker.dir.bin }}'
+    - '{{ docker.dir.data }}'
+    - '{{ flag }}'
+
+  when:
+  - cmd == "remove"
+  - not docker_ret.failed

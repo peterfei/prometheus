@@ -1,0 +1,41 @@
+## Request timeout
+timeout: 5s
+
+## Uncomment following line in order to write template from scratch (be careful!)
+#no_builtin_template: true
+
+## Customizable templates path
+#templates:
+#  - contrib/templates/legacy/template.tmpl
+templates:
+  - /etc/prometheus-webhook-dingtalk/templates/legacy/template.tmpl
+
+
+## Targets, previously was known as "profiles"
+targets:
+  webhook1:
+    url: https://oapi.dingtalk.com/robot/send?access_token=4b00ca8135bad30834b3b8a63f5fa97d4d435c5c4147d053af49d626d748d0d4
+    # secret for signature
+    secret: SEC109c2a9079b9b7356c2e2d890f386ad772cbd540d4cf93528725031b424dea4a
+  webhook2:
+    url: https://oapi.dingtalk.com/robot/send?access_token={{ alert.dingtalk.access_token }}
+    secret: SEC109c2a9079b9b7356c2e2d890f386ad772cbd540d4cf93528725031b424dea4a
+  webhook_legacy:
+    url: https://oapi.dingtalk.com/robot/send?access_token={{ alert.dingtalk.access_token }}
+    secret: SEC109c2a9079b9b7356c2e2d890f386ad772cbd540d4cf93528725031b424dea4a
+    # Customize template content
+    message:
+      # Use legacy template
+       title: '{{ alert.message.title }}'
+       text: '{{ alert.message.text }}'
+  webhook_mention_all:
+    url: https://oapi.dingtalk.com/robot/send?access_token=4b00ca8135bad30834b3b8a63f5fa97d4d435c5c4147d053af49d626d748d0d4
+    secret: SEC109c2a9079b9b7356c2e2d890f386ad772cbd540d4cf93528725031b424dea4a
+    mention:
+      all: true
+  webhook_mention_users:
+    url: https://oapi.dingtalk.com/robot/send?access_token=4b00ca8135bad30834b3b8a63f5fa97d4d435c5c4147d053af49d626d748d0d4
+    secret: SEC109c2a9079b9b7356c2e2d890f386ad772cbd540d4cf93528725031b424dea4a
+    mention:
+      mobiles: ['18092058670']
+

@@ -1,0 +1,21 @@
+version: "3.9" 
+
+services: 
+  alertmanager: 
+    image: {{ alertmanager.image }} 
+    container_name: {{ docker.network.name }}-alertmanager 
+    hostname: alertmanager 
+    restart: always 
+    volumes: 
+      - /etc/localtime:/etc/localtime:ro 
+      - {{ alertmanager.dir.conf }}/alertmanager.yml:/etc/alertmanager/alertmanager.yml 
+      - {{ alertmanager.dir.template }}:/etc/alertmanager/template 
+    networks: 
+      - {{ docker.network.name }} 
+    ports: 
+      - {{ alertmanager.port }}:9093 
+
+networks: 
+  {{ docker.network.name }}: 
+    external: true 
+    name: {{ docker.network.name }} 

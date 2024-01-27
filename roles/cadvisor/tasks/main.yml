@@ -1,0 +1,65 @@
+---
+# 校验 cAdvisor 是否安装
+- name: '<{{ cmd | upper }}> | 校验 cAdvisor 是否安装'
+  stat:
+    path: '{{ flag }}'
+  register: ret
+
+# 安装 cAdvisor
+- block: 
+  - name: '<{{ cmd | upper }}> | 创建 cAdvisor 相关目录'
+    file:
+      path: '{{ cadvisor.dir }}'
+      state: directory
+
+  - name: '<{{ cmd | upper }}> | 安装 cAdvisor'
+    template: 
+      src: '{{ item.src }}'
+      dest: '{{ item.dest }}'
+    loop:
+    - src: docker-compose.yml.j2
+      dest: '{{ cadvisor.dir }}/docker-compose.yml'
+
+  - name: '<{{ cmd | upper }}> | 配置部署主机'
+    shell: |
+      mount -o remount,rw '/sys/fs/cgroup'
+      sudo ln -s /sys/fs/cgroup/cpu,cpuacct /sys/fs/cgroup/cpuacct,cpu
+    ignore_errors: true
+
+  - name: '<{{ cmd | upper }}> | 启动 cAdvisor 容器'
+    shell: |
+      . /etc/profile
+      cd {{ cadvisor.dir }}
+      docker-compose down
+      docker-compose up -d
+
+  - name: '<{{ cmd | upper }}> | 等待 cAdvisor 服务启动'
+    wait_for:
+      port: '{{ cadvisor.port }}'
+
+  - name: '<{{ cmd | upper }}> | 创建 cAdvisor 安装标记'
+    shell: |
+      set -ex
+      mkdir -p ~/.flag
+      touch {{ flag }}
+
+  when:
+  - cmd == "install"
+  - not ret.stat.exists
+
+# 卸载 cAdvisor
+- block:
+  - name: '<{{ cmd | upper }}> | 卸载 cAdvisor'
+    shell: |
+      . /etc/profile
+      cd {{ cadvisor.dir }}
+      docker-compose down
+
+  - name: '<{{ cmd | upper }}> | 清除 cAdvisor 相关文件'
+    shell: |
+      rm -rf {{ cadvisor.dir }}
+      rm -rf {{ flag }}
+
+  when:
+  - cmd == "remove"
+  - ret.stat.exists

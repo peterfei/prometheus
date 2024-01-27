@@ -1,0 +1,73 @@
+---
+# 校验 Prometheus Server 是否安装
+- name: '<{{ cmd | upper }}> | 校验 Prometheus Server 是否安装'
+  stat:
+    path: '{{ flag }}'
+  register: ret
+
+# 创建 Prometheus Server 安装目录
+- block: 
+  - name: '<{{ cmd | upper }}> | 创建 Prometheus Server 相关目录'
+    file:
+      path: '{{ item.value }}'
+      state: directory
+    loop: '{{ prometheus.dir | dict2items }}'
+
+  - name: '<{{ cmd | upper }}> | 安装 Prometheus Server'
+    template: 
+      src: '{{ item.src }}'
+      dest: '{{ item.dest }}'
+    loop:
+    - src: docker-compose.yml.j2
+      dest: '{{ prometheus.dir.main }}/docker-compose.yml'
+    - src: conf/prometheus.yml.j2
+      dest: '{{ prometheus.dir.conf }}/prometheus.yml'
+    - src: reload.sh.j2
+      dest: '{{ prometheus.dir.main }}/reload.sh'
+
+  - name: '<{{ cmd | upper }}> | 初始化 Prometheus Server 告警规则文件'
+    copy: 
+      src: '{{ item }}'
+      dest: '{{ prometheus.dir.rules }}'
+    with_fileglob: 'files/rules/*.yml'
+
+  - name: '<{{ cmd | upper }}> | 启动 Prometheus Server 容器'
+    shell: |
+      . /etc/profile
+      chown -R 65534.65534 {{ prometheus.dir.data }} {{ prometheus.dir.conf }} {{ prometheus.dir.rules }}
+      chmod +x {{ prometheus.dir.main }}/reload.sh
+      cd {{ prometheus.dir.main }}
+      docker-compose down
+      rm -rf data/*
+      docker-compose up -d
+
+  - name: '<{{ cmd | upper }}> | 等待 Prometheus Server 服务启动'
+    wait_for:
+      port: '{{ prometheus.port }}'
+
+  - name: '<{{ cmd | upper }}> | 创建 Prometheus Server 安装标记'
+    shell: |
+      set -ex
+      mkdir -p ~/.flag
+      touch {{ flag }}
+
+  when:
+  - cmd == "install"
+  - not ret.stat.exists
+
+# 卸载 Prometheus Server
+- block:
+  - name: '<{{ cmd | upper }}> | 卸载 Prometheus Server'
+    shell: |
+      . /etc/profile
+      cd {{ prometheus.dir.main }}
+      docker-compose down
+
+  - name: '<{{ cmd | upper }}> | 清除 Prometheus Server 相关文件'
+    shell: |
+      rm -rf {{ prometheus.dir.main }}
+      rm -rf {{ flag }}
+
+  when:
+  - cmd == "remove"
+  - ret.stat.exists

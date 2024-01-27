@@ -1,0 +1,11 @@
+groups:
+- name: MongoDB
+  rules:
+  - alert: MongoDB 连接失败
+    expr: up{type="mongodb"} == 0
+    for: 30s
+    labels:
+      severity: emergency
+    annotations:
+      summary: MongoDB ({{ $labels.instance }}) 连接失败
+      description: "MongoDB {{ $labels.instance }} 连接失败!"

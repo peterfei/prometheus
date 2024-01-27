@@ -1,0 +1,42 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['env','app','type','name']
+  group_wait: 30s
+  group_interval: 30s
+  repeat_interval: 1h
+  receiver: 'dingtalk' 
+{% if prometheus_alert.enable %}
+  routes:
+  - receiver: 'message'
+    continue: true
+    match:
+      severity: emergency
+  - receiver: 'dingtalk'
+    continue: true
+    match_re:
+      severity: critical|warning
+{% endif %}
+
+receivers: 
+{% if prometheus_alert.enable %}
+- name: 'dingtalk'
+  webhook_configs:
+  - url: 'http://{{ groups.server.0 }}:{{ prometheus_alert.port }}/prometheusalert?type=dd&tpl=prometheus-dd&ddurl=https://oapi.dingtalk.com/robot/send?access_token={{ alert.dingtalk.access_token }}'
+- name: 'message'
+  webhook_configs:
+  - url: 'http://{{ groups.server.0 }}:{{ prometheus_alert.port }}/prometheusalert?type={{ alert.message.type }}dx&tpl=prometheus-dx&phone={{ alert.message.phone }}'
+{% elif prometheus_webhook_dingtalk.enable -%}
+- name: 'dingtalk'
+  webhook_configs:
+  - url: 'http://{{ groups.server.0 }}:{{ prometheus_webhook_dingtalk.port }}/dingtalk/webhook_legacy/send'
+    send_resolved: true
+{% endif %}
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['env','app','type','name']

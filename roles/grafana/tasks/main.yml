@@ -1,0 +1,66 @@
+---
+# 校验 Grafana 是否安装
+- name: '<{{ cmd | upper }}> | 校验 Grafana 是否安装'
+  stat:
+    path: '{{ flag }}'
+  register: ret
+
+# 安装 Grafana
+- block: 
+  - name: '<{{ cmd | upper }}> | 创建 Grafana 相关目录'
+    file:
+      path: '{{ item.value }}'
+      state: directory
+    loop: '{{ grafana.dir | dict2items }}'
+
+  - name: '<{{ cmd | upper }}> | 安装 Grafana'
+    template: 
+      src: '{{ item.src }}'
+      dest: '{{ item.dest }}'
+    loop:
+    - src: docker-compose.yml.j2
+      dest: '{{ grafana.dir.main }}/docker-compose.yml'
+    - src: conf/grafana.ini.j2
+      dest: '{{ grafana.dir.conf }}/grafana.ini'
+
+  - name: '<{{ cmd | upper }}> | 启动 Grafana 容器'
+    shell: |
+      . /etc/profile
+      chown -R 472.472 {{ grafana.dir.data }} {{ grafana.dir.conf }}
+      cd {{ grafana.dir.main }}
+      docker-compose down
+      rm -rf data/*
+      docker-compose up -d
+
+  - name: '<{{ cmd | upper }}> | 等待 Grafana 服务启动'
+    wait_for:
+      port: '{{ grafana.port }}'
+
+  - name: '<{{ cmd | upper }}> | 创建 Grafana 安装标记'
+    shell: |
+      set -ex
+      mkdir -p ~/.flag
+      touch {{ flag }}
+
+  when:
+  - cmd == "install"
+  - not ret.stat.exists
+  - grafana.enable
+
+# 卸载 Grafana
+- block:
+  - name: '<{{ cmd | upper }}> | 卸载 Grafana'
+    shell: |
+      . /etc/profile
+      cd {{ grafana.dir.main }}
+      docker-compose down
+
+  - name: '<{{ cmd | upper }}> | 清除 Grafana 相关文件'
+    shell: |
+      rm -rf {{ grafana.dir.main }}
+      rm -rf {{ flag }}
+
+  when:
+  - cmd == "remove"
+  - ret.stat.exists
+  - grafana.enable

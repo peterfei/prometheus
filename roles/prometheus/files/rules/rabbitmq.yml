@@ -1,0 +1,11 @@
+groups:
+- name: RabbitMQ
+  rules:
+  - alert: RabbitMQ 连接失败
+    expr: up{type="rabbitmq"} == 0
+    for: 30s
+    labels:
+      severity: emergency
+    annotations:
+      summary: RabbitMQ ({{ $labels.instance }}) 连接失败
+      description: "RabbitMQ {{ $labels.instance }} 连接失败!"

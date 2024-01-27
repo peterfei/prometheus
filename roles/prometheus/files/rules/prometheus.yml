@@ -1,0 +1,11 @@
+groups:
+- name: Prometheus
+  rules:
+  - alert: Prometheus 连接失败
+    expr: up{type="prometheus"} == 0
+    for: 30s
+    labels:
+      severity: emergency
+    annotations:
+      summary: Prometheus ({{ $labels.instance }}) 连接失败
+      description: "Prometheus {{ $labels.instance }} 连接失败!"
